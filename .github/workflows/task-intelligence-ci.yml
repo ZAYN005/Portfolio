@@ -16,11 +16,7 @@ on:
 jobs:
   backend:
     name: Backend Checks
-    if: ${{ hashFiles('task-intelligence/backend/package.json') != '' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: task-intelligence/backend
 
     steps:
       - name: Checkout repository
@@ -31,7 +27,22 @@ jobs:
         with:
           node-version: 20
 
+      - name: Check backend project exists
+        id: backend_exists
+        run: |
+          if [[ -f task-intelligence/backend/package.json ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip note (backend missing)
+        if: steps.backend_exists.outputs.exists != 'true'
+        run: echo "Backend folder is not in this commit. Skipping backend checks."
+
       - name: Install dependencies
+        if: steps.backend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/backend
         run: |
           if [[ -f package-lock.json ]]; then
             npm ci
@@ -40,21 +51,23 @@ jobs:
           fi
 
       - name: Run lint (if configured)
+        if: steps.backend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/backend
         run: npm run lint --if-present
 
       - name: Run tests (if configured)
+        if: steps.backend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/backend
         run: npm test --if-present
 
       - name: Build backend
+        if: steps.backend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/backend
         run: npm run build --if-present
 
   frontend:
     name: Frontend Checks
-    if: ${{ hashFiles('task-intelligence/frontend/package.json') != '' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: task-intelligence/frontend
 
     steps:
       - name: Checkout repository
@@ -65,7 +78,22 @@ jobs:
         with:
           node-version: 20
 
+      - name: Check frontend project exists
+        id: frontend_exists
+        run: |
+          if [[ -f task-intelligence/frontend/package.json ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip note (frontend missing)
+        if: steps.frontend_exists.outputs.exists != 'true'
+        run: echo "Frontend folder is not in this commit. Skipping frontend checks."
+
       - name: Install dependencies
+        if: steps.frontend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/frontend
         run: |
           if [[ -f package-lock.json ]]; then
             npm ci
@@ -74,10 +102,16 @@ jobs:
           fi
 
       - name: Run lint (if configured)
+        if: steps.frontend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/frontend
         run: npm run lint --if-present
 
       - name: Run tests (if configured)
+        if: steps.frontend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/frontend
         run: npm test --if-present
 
       - name: Build frontend
+        if: steps.frontend_exists.outputs.exists == 'true'
+        working-directory: task-intelligence/frontend
         run: npm run build
